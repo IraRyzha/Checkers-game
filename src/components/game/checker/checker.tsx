@@ -2,6 +2,7 @@
 import { memo } from "react";
 import { useChessBoard } from "../../../context/game-provider.js";
 import { CheckerType, IChecker } from "../../../game.js";
+import { CrownIcon } from "./crown.js";
 import styles from "./styles.module.css";
 
 interface Props {
@@ -23,6 +24,7 @@ export const Checker = memo(({ checker }: Props) => {
       onClick={() => handleClick(checker)}
     >
       {/* <span className={styles.id}>{checker.id}</span> */}
+      {checker.isKing && <CrownIcon />}
     </div>
   );
 });

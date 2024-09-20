@@ -52,9 +52,11 @@ function GameProvider({ children }: { children: ReactNode }) {
       const dx = Math.abs(toSquare.x - fromSquare.x);
       const dy = Math.abs(toSquare.y - fromSquare.y);
 
+      console.log("handleSquare");
+
       if (dx === 2 && dy === 2) {
         checkersGame.attack(fromSquare, toSquare);
-      } else if (dx === 1 && Math.abs(dy) === 1) {
+      } else if (dx === 1 && dy === 1) {
         checkersGame.move(fromSquare, toSquare);
       }
 
@@ -69,7 +71,7 @@ function GameProvider({ children }: { children: ReactNode }) {
       handleChecker,
       handleSquare,
     }),
-    [checkersGame, activeChecker, handleChecker]
+    [checkersGame, activeChecker, handleChecker, handleSquare]
   );
 
   return (
