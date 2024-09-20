@@ -5,6 +5,7 @@
     "module": "ESNext",
     "skipLibCheck": true,
     "allowJs": true,
+    "jsx": "react-jsx",
 
     /* Bundler mode */
     "moduleResolution": "node",
@@ -19,5 +20,5 @@
     "noUnusedParameters": true,
     "noFallthroughCasesInSwitch": true
   },
-  "include": ["vite.config.ts"]
+  "include": ["src/**/*.ts", "src/**/*.tsx", "vite.config.ts"]
 }
