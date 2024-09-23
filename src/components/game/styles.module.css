@@ -8,6 +8,13 @@
   border-radius: 12px;
 }
 
+@media (max-width: 600px) {
+  .boardStyle {
+    grid-template-columns: repeat(8, 50px);
+    grid-template-rows: repeat(8, 50px);
+  }
+}
+
 .startGameButton {
   padding: 20px 10px;
   position: absolute;

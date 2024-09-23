@@ -8,6 +8,13 @@
   position: relative;
 }
 
+@media (max-width: 600px) {
+  .squareStyle {
+    width: 50px;
+    height: 50px;
+  }
+}
+
 .bgGreen {
   background-color: #78ae80;
 }
