@@ -121,8 +121,11 @@ export interface ICheckersGame {
   winner: CheckerType | null;
   currentMove: IPlayer;
   activeChecker: IChecker | null;
+  baseMove(fromSquare: IBoardSquare, toSquare: IBoardSquare): void;
   move(fromSquare: IBoardSquare, toSquare: IBoardSquare): void;
   attack(fromSquare: IBoardSquare, toSquare: IBoardSquare): void;
+  straightDoubleAttack(fromSquare: IBoardSquare, toSquare: IBoardSquare): void;
+  curvedDoubleAttack(fromSquare: IBoardSquare, toSquare: IBoardSquare): void;
   isHasWinner(): void;
   checkForWinnerIfNoMoves(): void;
   checkIsKing(toSquare: IBoardSquare): boolean;
@@ -148,9 +151,6 @@ export class CheckersGame implements ICheckersGame {
 
   checkIsKing(toSquare: IBoardSquare): boolean {
     if (this.activeChecker?.type === CheckerType.Red && toSquare.y === 7) {
-      console.log(toSquare);
-      console.log(this.activeChecker?.type);
-
       return true;
     }
 
@@ -161,15 +161,34 @@ export class CheckersGame implements ICheckersGame {
     return false;
   }
 
-  move(fromSquare: IBoardSquare, toSquare: IBoardSquare): void {
+  move(fromSquare: IBoardSquare, toSquare: IBoardSquare) {
     if (this.winner) {
       return;
     }
 
+    const dx = Math.abs(toSquare.x - fromSquare.x);
+    const dy = Math.abs(toSquare.y - fromSquare.y);
+
+    if (this.checkIsKing(toSquare)) {
+      this.activeChecker?.becomeKing();
+    }
+
+    if (dx === 4 && dy === 4) {
+      this.straightDoubleAttack(fromSquare, toSquare);
+    } else if ((dx === 0 && dy === 4) || (dx === 4 && dy === 0)) {
+      this.curvedDoubleAttack(fromSquare, toSquare);
+    } else if (dx === 2 && dy === 2) {
+      this.attack(fromSquare, toSquare);
+    } else if (dx === 1 && dy === 1) {
+      this.baseMove(fromSquare, toSquare);
+    }
+
+    this.checkForWinnerIfNoMoves();
+    this.winner = this.isHasWinner();
+  }
+
+  baseMove(fromSquare: IBoardSquare, toSquare: IBoardSquare): void {
     if (this.isValidMove(fromSquare, toSquare)) {
-      if (this.checkIsKing(toSquare)) {
-        this.activeChecker?.becomeKing();
-      }
       fromSquare.clearSquare();
       toSquare.addChecker(this.activeChecker!);
 
@@ -179,27 +198,18 @@ export class CheckersGame implements ICheckersGame {
     } else {
       console.log("Invalid move: Must be one square diagonally");
     }
-    this.winner = this.isHasWinner();
-    this.checkForWinnerIfNoMoves();
   }
 
   private isValidMove(
     fromSquare: IBoardSquare,
     toSquare: IBoardSquare
   ): boolean {
-    const dx = Math.abs(toSquare.x - fromSquare.x);
-    const dy = Math.abs(toSquare.y - fromSquare.y);
-
-    if (dx !== 1 || dy !== 1 || toSquare.checker) {
-      return false;
-    }
-
     if (
       this.activeChecker?.type === CheckerType.Red &&
       toSquare.y <= fromSquare.y &&
       !this.activeChecker?.isKing
     ) {
-      console.log("Checkers r cannot move backward");
+      console.log("Checkers cannot move backward");
       return false;
     }
 
@@ -208,7 +218,7 @@ export class CheckersGame implements ICheckersGame {
       toSquare.y >= fromSquare.y &&
       !this.activeChecker?.isKing
     ) {
-      console.log("Checkers w cannot move backward");
+      console.log("Checkers cannot move backward");
       return false;
     }
 
@@ -216,10 +226,6 @@ export class CheckersGame implements ICheckersGame {
   }
 
   attack(fromSquare: IBoardSquare, toSquare: IBoardSquare): void {
-    if (this.winner) {
-      return;
-    }
-
     if (this.isValidAttack(fromSquare, toSquare)) {
       const midX = (fromSquare.x + toSquare.x) / 2;
       const midY = (fromSquare.y + toSquare.y) / 2;
@@ -240,21 +246,12 @@ export class CheckersGame implements ICheckersGame {
         "Invalid attack: Ensure middle square has opponent's checker and destination is empty"
       );
     }
-    this.winner = this.isHasWinner();
-    this.checkForWinnerIfNoMoves();
   }
 
   private isValidAttack(
     fromSquare: IBoardSquare,
     toSquare: IBoardSquare
   ): boolean {
-    const dx = Math.abs(toSquare.x - fromSquare.x);
-    const dy = Math.abs(toSquare.y - fromSquare.y);
-
-    if (dx !== 2 || dy !== 2) {
-      return false;
-    }
-
     if (
       this.activeChecker?.type === CheckerType.Red &&
       toSquare.y <= fromSquare.y &&
@@ -289,6 +286,197 @@ export class CheckersGame implements ICheckersGame {
       return true;
     }
 
+    return false;
+  }
+
+  straightDoubleAttack(fromSquare: IBoardSquare, toSquare: IBoardSquare): void {
+    if (this.isValidStraightDoubleAttack(fromSquare, toSquare)) {
+      const mid1X =
+        fromSquare.x +
+        (toSquare.x - fromSquare.x) / 2 -
+        (toSquare.x > fromSquare.x ? 1 : -1);
+      const mid1Y =
+        fromSquare.y +
+        (toSquare.y - fromSquare.y) / 2 -
+        (toSquare.y > fromSquare.y ? 1 : -1);
+
+      const mid2X = fromSquare.x + ((toSquare.x - fromSquare.x) * 3) / 4;
+      const mid2Y = fromSquare.y + ((toSquare.y - fromSquare.y) * 3) / 4;
+
+      const middleSquare1 = this.board.squares.find(
+        (square) => square.x === mid1X && square.y === mid1Y
+      );
+
+      const middleSquare2 = this.board.squares.find(
+        (square) => square.x === mid2X && square.y === mid2Y
+      );
+
+      middleSquare1?.clearSquare();
+      middleSquare2?.clearSquare();
+
+      toSquare.addChecker(this.activeChecker!);
+      fromSquare.clearSquare();
+
+      this.switchTurn();
+      this.activeChecker = null;
+    } else {
+      console.log(
+        "Недійсна подвійна атака: перевірте, що обидва проміжні квадрати містять шашки суперника"
+      );
+    }
+  }
+
+  private isValidStraightDoubleAttack(
+    fromSquare: IBoardSquare,
+    toSquare: IBoardSquare
+  ): boolean {
+    if (
+      this.activeChecker?.type === CheckerType.Red &&
+      toSquare.y <= fromSquare.y &&
+      !this.activeChecker?.isKing
+    ) {
+      console.log("Червоні шашки не можуть атакувати назад");
+      return false;
+    }
+
+    if (
+      this.activeChecker?.type === CheckerType.White &&
+      toSquare.y >= fromSquare.y &&
+      !this.activeChecker?.isKing
+    ) {
+      console.log("Білі шашки не можуть атакувати назад");
+      return false;
+    }
+
+    const mid1X =
+      fromSquare.x +
+      (toSquare.x - fromSquare.x) / 2 -
+      (toSquare.x > fromSquare.x ? 1 : -1);
+    const mid1Y =
+      fromSquare.y +
+      (toSquare.y - fromSquare.y) / 2 -
+      (toSquare.y > fromSquare.y ? 1 : -1);
+
+    const mid2X = fromSquare.x + ((toSquare.x - fromSquare.x) * 3) / 4;
+    const mid2Y = fromSquare.y + ((toSquare.y - fromSquare.y) * 3) / 4;
+
+    const middleSquare1 = this.board.squares.find(
+      (square) => square.x === mid1X && square.y === mid1Y
+    );
+
+    const middleSquare2 = this.board.squares.find(
+      (square) => square.x === mid2X && square.y === mid2Y
+    );
+
+    if (toSquare.checker) {
+      console.log("Кінцевий квадрат зайнятий");
+      return false;
+    }
+
+    if (
+      middleSquare1 &&
+      middleSquare1.checker &&
+      middleSquare1.checker.type !== this.activeChecker?.type &&
+      middleSquare2 &&
+      middleSquare2.checker &&
+      middleSquare2.checker.type !== this.activeChecker?.type
+    ) {
+      const emptySquareBetween = this.board.squares.find(
+        (square) =>
+          square.x === (mid1X + mid2X) / 2 && square.y === (mid1Y + mid2Y) / 2
+      );
+
+      console.log("emptySquareBetween: " + emptySquareBetween);
+
+      if (emptySquareBetween?.checker === null) {
+        return true;
+      }
+    }
+
+    console.log(
+      "Недійсна подвійна атака: перевірте, що обидва проміжні квадрати містять шашки суперника"
+    );
+    return false;
+  }
+
+  curvedDoubleAttack(fromSquare: IBoardSquare, toSquare: IBoardSquare): void {
+    if (this.isValidCurvedDoubleAttack(fromSquare, toSquare)) {
+      const dx = toSquare.x - fromSquare.x;
+      const dy = toSquare.y - fromSquare.y;
+
+      const mid1X = fromSquare.x + Math.sign(dx) * 1;
+      const mid1Y =
+        fromSquare.y === toSquare.y
+          ? this.activeChecker?.type! === CheckerType.Red
+            ? fromSquare.y + 1
+            : fromSquare.y - 1
+          : +Math.sign(dy) * 1;
+
+      const mid2X = fromSquare.x + Math.sign(dx) * 3;
+      const mid2Y =
+        fromSquare.y === toSquare.y ? mid1Y : fromSquare.y + Math.sign(dy) * 1;
+
+      const middleSquare1 = this.board.squares.find(
+        (square) => square.x === mid1X && square.y === mid1Y
+      );
+
+      const middleSquare2 = this.board.squares.find(
+        (square) => square.x === mid2X && square.y === mid2Y
+      );
+
+      middleSquare1?.clearSquare();
+      middleSquare2?.clearSquare();
+
+      toSquare.addChecker(this.activeChecker!);
+      fromSquare.clearSquare();
+
+      this.switchTurn();
+      this.activeChecker = null;
+    } else {
+      console.log("Недійсна крива подвійна атака");
+    }
+  }
+
+  private isValidCurvedDoubleAttack(
+    fromSquare: IBoardSquare,
+    toSquare: IBoardSquare
+  ): boolean {
+    const dx = toSquare.x - fromSquare.x;
+    const dy = toSquare.y - fromSquare.y;
+
+    const mid1X = fromSquare.x + Math.sign(dx) * 1;
+    const mid1Y =
+      fromSquare.y === toSquare.y
+        ? this.activeChecker?.type! === CheckerType.Red
+          ? fromSquare.y + 1
+          : fromSquare.y - 1
+        : +Math.sign(dy) * 1;
+
+    const mid2X = fromSquare.x + Math.sign(dx) * 3;
+    const mid2Y =
+      fromSquare.y === toSquare.y ? mid1Y : fromSquare.y + Math.sign(dy) * 1;
+
+    const middleSquare1 = this.board.squares.find(
+      (square) => square.x === mid1X && square.y === mid1Y
+    );
+
+    const middleSquare2 = this.board.squares.find(
+      (square) => square.x === mid2X && square.y === mid2Y
+    );
+
+    if (
+      middleSquare1 &&
+      middleSquare1.checker &&
+      middleSquare1.checker.type !== this.activeChecker?.type &&
+      middleSquare2 &&
+      middleSquare2.checker &&
+      middleSquare2.checker.type !== this.activeChecker?.type &&
+      !toSquare.checker
+    ) {
+      return true;
+    }
+
+    console.log("Недійсна крива подвійна атака");
     return false;
   }
 
