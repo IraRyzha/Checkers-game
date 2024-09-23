@@ -6,12 +6,7 @@ import {
   useCallback,
   useMemo,
 } from "react";
-import {
-  CheckersGame,
-  IBoardSquare,
-  IChecker,
-  ICheckersGame,
-} from "../game.js";
+import { CheckersGame, IBoardSquare, IChecker, ICheckersGame } from "../game";
 
 interface Value {
   checkersGame: ICheckersGame;
